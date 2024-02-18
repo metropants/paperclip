@@ -9,8 +9,15 @@ edition = "2021"
 dotenv = "0.15.0"
 anyhow = "1.0.79"
 tracing = "0.1.40"
+tower = "0.4.13"
 
 tokio = { version = "1.36.0", features = ["full"] }
 axum = { version = "0.7.4", features = ["tracing"] }
 tower-http = { version = "0.5.1", features = ["trace", "timeout"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+clap = { version = "4.5.1", features = ["derive", "env"] }
+sqlx = { version = "0.7.3", features = [
+    "runtime-tokio-native-tls",
+    "postgres",
+    "uuid",
+] }

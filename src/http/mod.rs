@@ -2,14 +2,18 @@ mod error;
 
 use std::time::Duration;
 
-use axum::{http::StatusCode, routing::get, Router};
+use axum::{http::StatusCode, routing::get, Extension, Router};
+use sqlx::PgPool;
 use tokio::{net::TcpListener, signal};
+use tower::ServiceBuilder;
 use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::PAPERCLIP;
 
-pub async fn serve() -> anyhow::Result<()> {
+pub type Database = Extension<PgPool>;
+
+pub async fn serve(pool: PgPool) -> anyhow::Result<()> {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
@@ -19,10 +23,14 @@ pub async fn serve() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer().compact().without_time())
         .init();
 
-    let app = Router::new().merge(api_routes()).layer((
-        TraceLayer::new_for_http(),
-        TimeoutLayer::new(Duration::from_secs(10)),
-    ));
+    let app = Router::new().merge(api_routes()).layer(
+        ServiceBuilder::new()
+            .layer((
+                TraceLayer::new_for_http(),
+                TimeoutLayer::new(Duration::from_secs(10)),
+            ))
+            .layer(Extension(pool)),
+    );
 
     let listener = TcpListener::bind("127.0.0.1:3000").await?;
     tracing::info!(
